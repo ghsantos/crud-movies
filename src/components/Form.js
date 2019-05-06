@@ -1,87 +1,125 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { withFormik, Form, Field, FieldArray, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
 
 import Button from './Button';
 
-const Form = ({ addMovie }) => {
-  const [title, setTitle] = useState('');
-  const [releaseYear, setReleaseYear] = useState(2019);
-  const [imdb, setImdb] = useState(0);
-  const [director, setDirector] = useState('');
-  const [directors, setDirectors] = useState([]);
-
-  const addDirector = () => {
-    setDirectors([...directors, director]);
-
-    setDirector('');
-  };
-
-  const clearState = () => {
-    setTitle('');
-    setReleaseYear(2019);
-    setImdb(0);
-    setDirector('');
-    setDirectors([]);
-  };
-
-  const handleSubmit = event => {
-    event.preventDefault();
-    addMovie({ title, releaseYear, imdb, directors });
-
-    clearState();
-  };
-
+const FormikForm = ({
+  values,
+  touched,
+  errors,
+  isSubmitting,
+  handleChange,
+  handleBlur,
+  handleSubmit,
+}) => {
   return (
     <div>
-      <form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit}>
         <div>
           <label>Title </label>
-          <input
+          <Field
             type="text"
-            value={title}
-            onChange={event => setTitle(event.target.value)}
+            value={values.title}
+            onChange={handleChange}
+            name="title"
             style={styles.input}
           />
+          <ErrorMessage name="title" />
         </div>
 
         <div>
           <label>Release Year </label>
-          <input
+          <Field
             type="number"
-            value={releaseYear}
-            onChange={event => setReleaseYear(event.target.value)}
+            value={values.releaseYear}
+            onChange={handleChange}
+            name="releaseYear"
             style={styles.input}
           />
+          <ErrorMessage name="releaseYear" />
         </div>
 
         <div>
           <label> IMDb</label>
-          <input
+          <Field
             type="number"
-            value={imdb}
-            onChange={event => setImdb(event.target.value)}
+            value={values.imdb}
+            onChange={handleChange}
+            name="imdb"
             style={styles.input}
           />
+          <ErrorMessage name="imdb" />
         </div>
 
         <div>
           <label>Directors:</label>
-          <p>{directors.join(', ')}</p>
-          <input
-            type="text"
-            value={director}
-            onChange={event => setDirector(event.target.value)}
-            style={styles.input}
+          <FieldArray
+            render={arrayHelpers => (
+              <div>
+                {values.directors.map((director, index) => (
+                  <div key={index}>
+                    <Field
+                      type="text"
+                      name={`directors.${index}`}
+                      style={styles.input}
+                    />
+                  </div>
+                ))}
+
+                <Button onClick={() => arrayHelpers.push('')}>
+                  Add Director
+                </Button>
+              </div>
+            )}
+            name="directors"
           />
-          <Button onClick={addDirector} type="button">
-            Add
-          </Button>
         </div>
 
         <Button type="submit">Add new movie</Button>
-      </form>
+      </Form>
     </div>
   );
 };
+
+const InputFormik = withFormik({
+  mapPropsToValues: () => ({
+    title: '',
+    releaseYear: 2019,
+    imdb: 0,
+    director: '',
+    directors: [],
+  }),
+
+  validationSchema: Yup.object().shape({
+    title: Yup.string()
+      .min(2)
+      .max(45)
+      .required('Title is required!'),
+    releaseYear: Yup.number()
+      .min(1900)
+      .max(2019)
+      .required('Release year is required!'),
+    imdb: Yup.number()
+      .min(0)
+      .max(10)
+      .required('IMDb is required!'),
+    director: Yup.string()
+      .min(6)
+      .max(45),
+  }),
+
+  handleSubmit: (values, { setSubmitting, props, resetForm }) => {
+    props.onSubmit(values, setSubmitting);
+    resetForm();
+  },
+})(FormikForm);
+
+const MovieForm = ({ addMovie }) => (
+  <div>
+    <InputFormik onSubmit={addMovie} />
+  </div>
+);
 
 const styles = {
   input: {
@@ -93,4 +131,4 @@ const styles = {
   },
 };
 
-export default Form;
+export default MovieForm;
